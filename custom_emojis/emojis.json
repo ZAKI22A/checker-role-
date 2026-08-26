@@ -1,0 +1,12 @@
+{
+  "loader": "<a:loading:1536413328321282168>",
+  "success": "<a:success_emoji:1536412690308796557>",
+  "danger": "<a:danger_emoji:1536413290115240036>",
+  "audit":  "<a:audit_emoji:1539304734635327639>",
+  "server": "<a:server_emoji:1528544652616274170>",
+  "user": "<a:user_emoji:1528544727287206068>",
+  "role": "<a:role_emoji:1528559615590010960>",
+  "voice": "<a:voice_emoji:1536412736836083712>",
+  "help": "<a:help_emoji:1528544449502642176>",
+  "stats": "<a:stats_emoji:654654654654654654>"
+}

@@ -1,0 +1,9 @@
+{
+  "allowedRoleName": "YOUR_ALLOWED_ROLE_NAME",
+  "userTokens": {},
+  "bots": [],
+  "trackedServers": {},
+  "protectedIds": [],
+  "adminRoleName": "YOUR_ADMIN_ROLE_NAME",
+  "allowedRoles": {}
+}

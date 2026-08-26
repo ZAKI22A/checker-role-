@@ -1,0 +1,24 @@
+{
+  "name": "discord-checker-js",
+  "version": "1.1.0",
+  "description": "Discord permission checker, tracker & voice intelligence",
+  "main": "start.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node checker.js & node bot.js"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.17.0",
+    "@napi-rs/canvas": "^1.0.2",
+    "axios": "^1.19.0",
+    "canvas": "^3.2.3",
+    "debug": "^4.3.4",
+    "discord.js": "^14.27.0",
+    "discord.js-selfbot-v13": "^3.7.1",
+    "express": "^5.2.1",
+    "gif-encoder-2": "^1.0.5",
+    "gif-frames": "^1.0.1",
+    "luaparse": "^0.3.1",
+    "ws": "^8.21.1"
+  }
+}

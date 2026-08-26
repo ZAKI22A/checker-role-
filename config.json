@@ -1,0 +1,21 @@
+{
+  "main_bot_token": "YOUR_BOT_TOKEN_HERE",
+  "checker_user_token": "YOUR_USER_TOKEN_HERE",
+  "fallback_user_token": "YOUR_FALLBACK_USER_TOKEN_HERE",
+  "main_bot_id": "YOUR_BOT_ID_HERE",
+  "checker_user_id": "YOUR_CHECKER_USER_ID_HERE",
+  "checker_port": 4567,
+  "dashboard_port": 4580,
+  "x_super_properties": "YOUR_X_SUPER_PROPERTIES_HERE",
+  "target_servers": [],
+  "auto_voice_channel_id": "YOUR_VOICE_CHANNEL_ID_HERE",
+  "owner_ids": [],
+  "ai_api_key": "YOUR_AI_API_KEY_HERE",
+  "grantable_role_id": "YOUR_GRANTABLE_ROLE_ID_HERE",
+  "staff_update_interval_ms": 600000,
+  "dangerous_role_id": "YOUR_DANGEROUS_ROLE_ID_HERE",
+  "clean_role_id": "YOUR_CLEAN_ROLE_ID_HERE",
+  "log_channel_id": "YOUR_LOG_CHANNEL_ID_HERE",
+  "emoji_upload_channel_id": "YOUR_EMOJI_UPLOAD_CHANNEL_ID_HERE",
+  "whitelist_ids": []
+}
