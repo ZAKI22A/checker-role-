@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  kiliua-bot:
+    build: .
+    container_name: kiliua-checker
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "4567:4567"
+    volumes:
+      - ./database.json:/app/database.json

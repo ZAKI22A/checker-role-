@@ -37,34 +37,39 @@ cd checker-role-
 npm install
 
 # Configure your settings
-# Edit config.json with your tokens and IDs
+# Copy .env.example to .env and fill in your tokens securely:
+cp .env.example .env
+# Or edit config.json with your settings
 ```
 
-### Configuration
+### Configuration (.env or config.json)
 
-Edit `config.json` and fill in your values:
+You can configure the bot using a `.env` file (recommended, never committed to git) or `config.json`:
 
-```json
-{
-  "main_bot_token": "YOUR_BOT_TOKEN_HERE",
-  "checker_user_token": "YOUR_USER_TOKEN_HERE",
-  "main_bot_id": "YOUR_BOT_ID_HERE",
-  "checker_user_id": "YOUR_CHECKER_USER_ID_HERE",
-  "owner_ids": ["YOUR_DISCORD_USER_ID"],
-  "ai_api_key": "YOUR_GOOGLE_AI_API_KEY",
-  ...
-}
+```env
+MAIN_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+MAIN_BOT_ID=YOUR_BOT_ID_HERE
+CHECKER_USER_TOKEN=YOUR_CHECKER_USER_TOKEN_HERE
+FALLBACK_USER_TOKEN=YOUR_FALLBACK_USER_TOKEN_HERE
+CHECKER_USER_ID=YOUR_CHECKER_USER_ID_HERE
+OWNER_IDS=YOUR_DISCORD_USER_ID
+PORT=4567
 ```
 
-### Running
+### Running & Hosting
 
 ```bash
 # Start both bot and checker
 npm start
 
-# Or use PM2
+# Or using PM2 for VPS / 24/7 background hosting
 pm2 start ecosystem.config.js
+
+# Or using Docker
+docker-compose up -d --build
 ```
+
+> 📖 **Full Hosting Guide**: Check [HOSTING.md](HOSTING.md) for detailed instructions on deploying to **Railway**, **Render**, **Docker**, and **Linux VPS**.
 
 ## Project Structure
 

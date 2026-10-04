@@ -10,13 +10,28 @@ console.log('  KILIUA CHECKER ENGINE v10.11 — RATE LIMIT AVOIDANCE + JITTER');
 console.log('='.repeat(70));
 
 // ─── قراءة الإعدادات ──────────────────────────────────────────
-let config;
+try { require('dotenv').config(); } catch {}
+
+let config = {};
 try {
-    config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+    if (fs.existsSync('config.json')) {
+        config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+    }
 } catch (e) {
-    console.error('❌ config.json not found!', e);
-    process.exit(1);
+    console.warn('⚠️ config.json not loaded, falling back to environment variables.');
 }
+
+function resolveVal(envVal, confVal, placeholderPrefix = 'YOUR_') {
+    if (envVal && typeof envVal === 'string' && envVal.trim() && !envVal.startsWith(placeholderPrefix)) return envVal.trim();
+    if (confVal && typeof confVal === 'string' && confVal.trim() && !confVal.startsWith(placeholderPrefix)) return confVal.trim();
+    return envVal || confVal || '';
+}
+
+config.checker_user_token = resolveVal(process.env.CHECKER_USER_TOKEN, config.checker_user_token);
+config.fallback_user_token = resolveVal(process.env.FALLBACK_USER_TOKEN, config.fallback_user_token);
+config.main_bot_token = resolveVal(process.env.MAIN_BOT_TOKEN || process.env.DISCORD_BOT_TOKEN, config.main_bot_token);
+config.checker_port = parseInt(process.env.PORT || process.env.CHECKER_PORT || config.checker_port || 4567, 10);
+config.x_super_properties = process.env.X_SUPER_PROPERTIES || config.x_super_properties || '';
 
 const PORT = config.checker_port || 4567;
 const TARGET_SERVERS = config.target_servers || [];
@@ -383,7 +398,7 @@ function fetchVoiceViaGateway(token, timeoutMs = 45000) {
             cleanup();
             resolve(d);
         };
-        const mainTimer = setTimeout(() => {
+        let mainTimer = setTimeout(() => {
             log('GW_TIMEOUT', `${guildVoiceMap.size}/${guildsExpected}`);
             resolveOnce({ voiceMap: guildVoiceMap, guildData: guildDataMap });
         }, timeoutMs);
@@ -391,10 +406,9 @@ function fetchVoiceViaGateway(token, timeoutMs = 45000) {
         let drainTimer = null;
         const checkComplete = () => {
             if (!readyReceived || !supplementalReceived) return;
-            if (guildsReceived < guildsExpected) return;
             if (drainTimer) return;
-            log('GW_COMPLETE', `${guildVoiceMap.size} guilds with voice — draining 3s`);
-            drainTimer = setTimeout(() => resolveOnce({ voiceMap: guildVoiceMap, guildData: guildDataMap }), 3000);
+            log('GW_COMPLETE', `${guildVoiceMap.size} guilds with voice — finishing`);
+            drainTimer = setTimeout(() => resolveOnce({ voiceMap: guildVoiceMap, guildData: guildDataMap }), 1200);
         };
 
         const sendOp14Subscriptions = (guildIds) => {
@@ -469,6 +483,11 @@ function fetchVoiceViaGateway(token, timeoutMs = 45000) {
 
                 if (p.t === 'READY' && p.d) {
                     readyReceived = true;
+                    clearTimeout(mainTimer);
+                    mainTimer = setTimeout(() => {
+                        log('GW_TIMEOUT_POST_READY', `${guildVoiceMap.size}/${guildsExpected}`);
+                        resolveOnce({ voiceMap: guildVoiceMap, guildData: guildDataMap });
+                    }, 12000);
                     guildsExpected = p.d.guilds ? p.d.guilds.length : 0;
                     allGuildIds = p.d.guilds ? p.d.guilds.map(g => g.id) : [];
                     log('GW_READY', `${guildsExpected} guilds`);
@@ -642,6 +661,14 @@ async function checkUser(userId, token, headers, fullScan = false) {
             allRoles,
             permissions: danger,
             serverIconHash: gd.icon,
+            serverBannerHash: gd.banner || null,
+            ownerId: gd.owner_id || null,
+            memberCount: gd.approximate_member_count ?? null,
+            onlineCount: gd.approximate_presence_count ?? null,
+            boostTier: gd.premium_tier ?? 0,
+            boostCount: gd.premium_subscription_count ?? 0,
+            vanity: gd.vanity_url_code || null,
+            nick: member.nick || null,
             joinedAt: member.joined_at || null,
             hasPowers: hasDanger || isOwner,
             currentChannel: vs ? { id: vs.channelId, name: vs.channelName } : null,
@@ -1156,7 +1183,8 @@ app.get('/tma', async (req, res) => {
             const now = Date.now();
             for (const v of vs) {
                 const u = (v.member && v.member.user) ? v.member.user : null;
-                if (u && u.bot) bots++; else humans++;
+                const isBot = !!(u && u.bot);
+                if (isBot) bots++; else humans++;
                 try {
                     const created = Number((BigInt(String(v.user_id)) >> 22n) + 1420070400000n);
                     if (now - created < 7 * 24 * 60 * 60 * 1000) fresh++;
@@ -1166,13 +1194,13 @@ app.get('/tma', async (req, res) => {
                 name: g.name,
                 id: g.id,
                 icon: g.icon,
-                activeVoice: vs.length,
+                activeVoice: humans,
                 activeVoiceHumans: humans,
                 botsInVoice: bots,
                 freshAccounts: fresh
             };
-        });
-        results.sort((a, b) => b.activeVoice - a.activeVoice);
+        }).filter(r => r.activeVoiceHumans > 0);
+        results.sort((a, b) => b.activeVoiceHumans - a.activeVoiceHumans);
         res.json({ success: true, results });
     } catch (e) {
         log('TMA_ERR', e.message);
@@ -1189,9 +1217,8 @@ app.get('/cv', async (req, res) => {
     try {
         const c = ct(tok), h = buildHeaders(c);
         const guilds = await getAllMyGuilds(h);
-        const { voiceMap } = await fetchVoiceViaGateway(c, 50000);
+        const { voiceMap } = await fetchVoiceViaGateway(c, 45000);
         const results = [];
-        const checked = new Set();
 
         for (const [gid, vs] of voiceMap) {
             const uv = vs.find(v => String(v.user_id) === String(userId));
@@ -1199,71 +1226,32 @@ app.get('/cv', async (req, res) => {
             const g = guilds.find(x => String(x.id) === gid);
             if (!g) continue;
 
-            const chs = await getGuildChannels(g.id, h);
-            const chMap = new Map(chs.map(ch => [ch.id, ch]));
-            let chFound = chMap.get(uv.channel_id);
+            let chName = null;
+            try {
+                const chs = await getGuildChannels(g.id, h);
+                const chFound = chs.find(ch => String(ch.id) === String(uv.channel_id));
+                if (chFound) chName = chFound.name;
+            } catch {}
 
-            if (!chFound) {
+            if (!chName) {
                 try {
-                    const chRes = await axios.get(`${DISCORD_API}/channels/${uv.channel_id}`, { headers: h, timeout: 8000 });
-                    if (chRes.data && chRes.data.name) chFound = chRes.data;
+                    const chRes = await axios.get(`${DISCORD_API}/channels/${uv.channel_id}`, { headers: h, timeout: 5000 });
+                    if (chRes.data && chRes.data.name) chName = chRes.data.name;
                 } catch {}
             }
 
-            const chName = chFound ? chFound.name : null;
-            const isHidden = !chName;
             const inV = vs.filter(v => String(v.channel_id) === String(uv.channel_id));
 
             results.push({
                 serverName: g.name,
                 serverId: g.id,
                 serverIconHash: g.icon,
-                currentChannel: { id: uv.channel_id, name: chName || 'Private Channel', type: chFound ? chFound.type : 2, isHidden },
+                currentChannel: { id: uv.channel_id, name: chName || 'Voice Channel', isHidden: !chName },
                 voiceMembers: inV.length > 0 ? inV.map(v => ({ id: v.user_id })) : [{ id: userId }],
                 isOnline: true
             });
-            checked.add(gid);
         }
 
-        const rem = guilds.filter(g => !checked.has(String(g.id)));
-        if (rem.length > 0) {
-            const bs = 3;
-            for (let i = 0; i < rem.length; i += bs) {
-                const batch = rem.slice(i, i + bs);
-                const br = await Promise.allSettled(batch.map(async (g) => {
-                    try {
-                        const mr = await axios.get(`${DISCORD_API}/guilds/${g.id}/members/${userId}`, { headers: h, timeout: 10000 });
-                        const m = mr.data;
-                        if (!m || !m.voice_state || !m.voice_state.channel_id) return null;
-
-                        const chs = await getGuildChannels(g.id, h);
-                        const chMap = new Map(chs.map(ch => [ch.id, ch]));
-                        let chFound = chMap.get(m.voice_state.channel_id);
-
-                        if (!chFound) {
-                            try {
-                                const chRes = await axios.get(`${DISCORD_API}/channels/${m.voice_state.channel_id}`, { headers: h, timeout: 8000 });
-                                if (chRes.data && chRes.data.name) chFound = chRes.data;
-                            } catch {}
-                        }
-
-                        const chName = chFound ? chFound.name : null;
-                        const isHidden = !chName;
-                        return {
-                            serverName: g.name,
-                            serverId: g.id,
-                            serverIconHash: g.icon,
-                            currentChannel: { id: m.voice_state.channel_id, name: chName || 'Private Channel', type: chFound ? chFound.type : 2, isHidden },
-                            voiceMembers: [{ id: userId }],
-                            isOnline: true
-                        };
-                    } catch (e) { if (e.response?.status === 429) await sleep((e.response.data?.retry_after || 1) * 1000 + 500); }
-                    return null;
-                }));
-                for (const r of br) { if (r.status === 'fulfilled' && r.value) results.push(r.value); }
-                if (i + bs < rem.length) await sleep(1000);
-            }
-        }
         log('CV_DONE', `${results.length}`);
         res.json({ success: true, userId, results, total: results.length });
     } catch (e) {

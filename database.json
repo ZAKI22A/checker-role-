@@ -5,5 +5,7 @@
   "trackedServers": {},
   "protectedIds": [],
   "adminRoleName": "YOUR_ADMIN_ROLE_NAME",
-  "allowedRoles": {}
+  "allowedRoles": {},
+  "voiceStats": {},
+  "userTokensPool": []
 }

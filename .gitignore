@@ -1,7 +1,8 @@
 node_modules/
 npm-debug.log*
 .env
-.env.local
+.env.*
+!.env.example
 *.log
 .DS_Store
 Thumbs.db
@@ -10,3 +11,5 @@ build/
 .cache/
 *.zip
 dashboard_users.json
+.dashboard_users.json
+test*.js
